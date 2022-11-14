@@ -12,7 +12,7 @@ import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
 import org.testng.annotations.*;
-import webdriverTest.pages.LoginPage;
+import webdriverTest.pages.*;
 
 import java.io.File;
 import java.util.List;
@@ -43,6 +43,7 @@ public class TestSpecificRubrics {
 
         loginPage.userName.sendKeys("tomsmith");
         loginPage.password.sendKeys("SuperSecretPassword!");
+
         loginPage.loginBtn.click();
         Assert.assertTrue(loginPage.message.getText().contains("You logged into a secure area!"));
     }
@@ -54,6 +55,7 @@ public class TestSpecificRubrics {
 
         loginPage.userName.sendKeys("wrong");
         loginPage.password.sendKeys("wrong");
+
         loginPage.loginBtn.click();
         Assert.assertTrue(loginPage.message.getText().contains("Your username is invalid!"));
     }
@@ -61,74 +63,79 @@ public class TestSpecificRubrics {
     @Test
     public void checkboxes(){
         driver.get("http://localhost:7080/checkboxes");
+        CheckBoxes checkBoxes = new CheckBoxes(driver);
+        checkBoxes.checkbox1.click();
 
-        Assert.assertFalse(driver.findElement(By.xpath("(//input[@type='checkbox'])[1]")).isSelected(), "checkbox1 is not selected");
+        Assert.assertTrue(checkBoxes.checkbox1.isSelected(), "checkbox1 is not selected");
 
-        Assert.assertTrue(driver.findElement(By.xpath("(//input[@type='checkbox'])[2]")).isSelected(), "checkbox1 is not selected");
-    }
-
-    @Test
-    public void contextMenu(){
-        driver.get("http://localhost:7080/context_menu");
-        Actions actions = new Actions(driver);
-        WebElement box = driver.findElement(By.id("hot-spot"));
-        actions.contextClick(box).perform();
-        Assert.assertEquals(driver.switchTo().alert().getText(), "You selected a context menu");
+        Assert.assertTrue(checkBoxes.checkbox2.isSelected(), "checkbox1 is not selected");
     }
 
     @Test
     public void dragAndDrop(){
         driver.get("http://localhost:7080/drag_and_drop");
-
-        WebElement A = driver.findElement(By.id("column-a"));
-        WebElement B = driver.findElement(By.id("column-b"));
+        DragAndDrop dragAndDrop = new DragAndDrop(driver);
 
         Actions actions = new Actions(driver);
-        actions.dragAndDrop(A, B).build().perform();
+        actions.clickAndHold(dragAndDrop.columA).moveToElement(dragAndDrop.columB).click().release(dragAndDrop.columB).build().perform();
+//        actions.dragAndDrop(dragAndDrop.columB, dragAndDrop.columA).build().perform();
+    }
+
+    @Test(priority = 18)
+    public void contextMenu(){
+        driver.get("http://localhost:7080/context_menu");
+        Actions actions = new Actions(driver);
+        ContextMenu contextMenu = new ContextMenu(driver);
+
+        actions.contextClick(contextMenu.box).perform();
+
+        Assert.assertEquals(driver.switchTo().alert().getText(), "You selected a context menu");
+
     }
 
     @Test
     public void dropdown(){
         driver.get("http://localhost:7080/dropdown");
-        Select select = new Select(driver.findElement(By.xpath("//select[@id='dropdown']")));
+        DropDownPage dropDownPage = new DropDownPage(driver);
+        Select select = new Select(dropDownPage.dropDown);
         select.selectByVisibleText("Option 1");
 
-        WebElement option1 = driver.findElement(By.xpath("//option[.='Option 1']"));
-        Assert.assertTrue(option1.isSelected());
+        Assert.assertTrue(dropDownPage.option1.isSelected());
         select.selectByVisibleText("Option 2");
 
-        WebElement option2 = driver.findElement(By.xpath("//option[.='Option 2']"));
-        Assert.assertTrue(option2.isDisplayed());
+        Assert.assertTrue(dropDownPage.option2.isDisplayed());
     }
 
     @Test
-    public void dynamicContent(){
+    public void dynamicContent() throws InterruptedException {
         driver.get("http://localhost:7080/dynamic_content");
-        String before = driver.findElement(By.xpath("//div[@class='large-10 columns']")).getText();
-        driver.navigate().refresh();
-        WebElement after = driver.findElement(By.xpath("//div[@class='large-10 columns']"));
+        DynamicContent dynamicContent = new DynamicContent(driver);
 
-        if(!before.equals(after.getText())){
+        driver.navigate().refresh();
+        driver.navigate().refresh();
+
+        if(!dynamicContent.before.getText().equals(dynamicContent.after.getText())){
             Assert.assertTrue(true);
         }
+        Thread.sleep(5000);
     }
 
     @Test
     public void dynamicControls(){
         driver.get("http://localhost:7080/dynamic_controls");
-        WebElement removeAndAddBtn = driver.findElement(By.xpath("(//button[@type='button'])[1]"));
-        removeAndAddBtn.click();
-        WebElement checkbox = driver.findElement(By.xpath("//input[@type='checkbox']"));
-        WebElement message = driver.findElement(By.xpath("//p[@id='message']"));
+        DynamicControls dynamicControls = new DynamicControls(driver);
         WebDriverWait wait = new WebDriverWait(driver, 30);
-        wait.until(ExpectedConditions.invisibilityOf(checkbox));
-        Assert.assertTrue(message.isDisplayed());
-        removeAndAddBtn.click();
+
+        dynamicControls.removeAndAddBtn.click();
+        wait.until(ExpectedConditions.invisibilityOf(driver.findElement(By.xpath("//input[@type='checkbox']"))));
+        Assert.assertTrue(dynamicControls.message.isDisplayed());
+
+        dynamicControls.removeAndAddBtn.click();
         wait.until(ExpectedConditions.textToBe(By.xpath("//p[@id='message']"), "It's back!"));
         Assert.assertEquals(driver.findElement(By.xpath("//p[@id='message']")).getText(), "It's back!");
 
-        WebElement enable_disableBtn = driver.findElement(By.xpath("(//button[@type='button'])[2]"));
-        enable_disableBtn.click();
+
+        dynamicControls.enable_disableBtn.click();
         wait.until(ExpectedConditions.textToBe(By.xpath("//p[@id='message']"), "It's enabled!"));
         Assert.assertEquals(driver.findElement(By.xpath("//p[@id='message']")).getText(), "It's enabled!");
     }
@@ -136,23 +143,22 @@ public class TestSpecificRubrics {
     @Test
     public void dynamicLoading(){
         driver.get("http://localhost:7080/dynamic_loading/2");
-
-        WebElement startBtn = driver.findElement(By.xpath("//button[.='Start']"));
-        startBtn.click();
-
         WebDriverWait wait = new WebDriverWait(driver, 10);
-        WebElement text = driver.findElement(By.xpath("//div[@id='finish']"));
-        wait.until(ExpectedConditions.visibilityOf(text));
-        Assert.assertTrue(text.isDisplayed());
+        DynamicLoading dynamicLoading = new DynamicLoading(driver);
+
+        dynamicLoading.startBtn.click();
+
+        wait.until(ExpectedConditions.visibilityOf(dynamicLoading.text));
+        Assert.assertTrue(dynamicLoading.text.isDisplayed());
     }
 
     @Test
     public void fileDownload() throws InterruptedException {
         driver.get("http://localhost:7080/download");
-        WebElement download = driver.findElement(By.linkText("some-file.txt"));
-        download.click();
+        FileDownload fileDownload = new FileDownload(driver);
+
+        fileDownload.download.click();
         Thread.sleep(2000);
-        // Downloads
 
         File fileLocation = new File("C:\\Users\\HP_001\\Downloads");
 
@@ -172,9 +178,10 @@ public class TestSpecificRubrics {
     @Test
     public void fileUpload(){
         driver.get("http://localhost:7080/upload");
-        driver.findElement(By.xpath("//input[@name=\"file\"]")).sendKeys("C:\\Users\\HP_001\\Downloads\\some-file.txt");
-        driver.findElement(By.id("file-submit")).click();
-        Assert.assertTrue(driver.findElement(By.xpath("//h3")).isDisplayed());
+        FileUpload fileUpload = new FileUpload(driver);
+        fileUpload.upload.sendKeys("C:\\Users\\HP_001\\Downloads\\some-file.txt");
+        fileUpload.fileSubmitBtn.click();
+        Assert.assertTrue(fileUpload.msg.isDisplayed());
     }
 
     @Test
@@ -189,52 +196,45 @@ public class TestSpecificRubrics {
     @Test
     public void iframe(){
         driver.get("http://localhost:7080/iframe");
-        driver.findElement(By.xpath("//div[@aria-label='Close']")).click();
+        Iframe iframe = new Iframe(driver);
+
+        iframe.close.click();
         driver.switchTo().frame("mce_0_ifr");
 
-        WebElement textArea = driver.findElement(By.xpath("//p"));
-        textArea.sendKeys("Hello ");
-        Assert.assertEquals(textArea.getText(), "Hello Your content goes here.");
+        iframe.textArea.sendKeys("Hello ");
+        Assert.assertEquals(iframe.textArea.getText(), "Hello Your content goes here.");
     }
 
     @Test
     public void mouseHover(){
         driver.get("http://localhost:7080/hovers");
-        WebElement image1 = driver.findElement(By.xpath("(//img)[2]"));
-        WebElement image2 = driver.findElement(By.xpath("(//img)[3]"));
-        WebElement image3 = driver.findElement(By.xpath("(//img)[4]"));
-        WebElement user1 = driver.findElement(By.xpath("//h5[text()='name: user1']"));
-        WebElement user2 = driver.findElement(By.xpath("//h5[text()='name: user2']"));
-        WebElement user3 = driver.findElement(By.xpath("//h5[text()='name: user3']"));
-
         Actions actions = new Actions(driver);
+        MouseHover mouseHover = new MouseHover(driver);
 
-        actions.moveToElement(image1).perform();
-        Assert.assertTrue(user1.isDisplayed());
+        actions.moveToElement(mouseHover.image1).perform();
+        Assert.assertTrue(mouseHover.user1.isDisplayed());
 
-        actions.moveToElement(image2).perform();
-        Assert.assertTrue(user2.isDisplayed());
+        actions.moveToElement(mouseHover.image2).perform();
+        Assert.assertTrue(mouseHover.user2.isDisplayed());
 
-        actions.moveToElement(image3).perform();
-        Assert.assertTrue(user3.isDisplayed());
+        actions.moveToElement(mouseHover.image3).perform();
+        Assert.assertTrue(mouseHover.user3.isDisplayed());
     }
 
     @Test
     public void javaScriptAlerts(){
         driver.get("http://localhost:7080/javascript_alerts");
-        WebElement JSAlert = driver.findElement(By.xpath("(//button)[1]"));
-        WebElement JSConfirm = driver.findElement(By.xpath("(//button)[2]"));
-        WebElement JSPrompt = driver.findElement(By.xpath("(//button)[3]"));
-        JSAlert.click();
+        JavaScriptAlerts javaScriptAlerts = new JavaScriptAlerts(driver);
 
+        javaScriptAlerts.JSAlert.click();
         Assert.assertEquals(driver.switchTo().alert().getText(), "I am a JS Alert");
         driver.switchTo().alert().accept();
 
-        JSConfirm.click();
+        javaScriptAlerts.JSConfirm.click();
         driver.switchTo().alert().accept();
         Assert.assertEquals(driver.findElement(By.xpath("(//p)[2]")).getText(), "You clicked: Ok");
 
-        JSPrompt.click();
+        javaScriptAlerts.JSPrompt.click();
         driver.switchTo().alert().sendKeys("Hello");
         driver.switchTo().alert().accept();
         Assert.assertTrue(driver.findElement(By.xpath("(//p)[2]")).getText().contains("Hello"));
@@ -272,22 +272,35 @@ public class TestSpecificRubrics {
     @Test
     public void notificationMessage(){
         driver.get("http://localhost:7080/notification_message_rendered");
-        WebElement clickBtn = driver.findElement(By.partialLinkText("Click here"));
-        clickBtn.click();
+        NotificationMessage notificationMessage = new NotificationMessage(driver);
+        notificationMessage.clickBtn.click();
 
-        while (true) {
-            if (driver.findElement(By.xpath("//div[@id='flash-messages']")).getText().contains("Action successful")) {
-                break;
+        if(notificationMessage.msg.getText().contains("Action successful")){
+            Assert.assertTrue(notificationMessage.msg.getText().contains("Action successful"));
+        } else {
+            notificationMessage.clickBtn.click();
+            if(notificationMessage.msg.getText().contains("Action successful")){
+                Assert.assertTrue(notificationMessage.msg.getText().contains("Action successful"));
+                System.out.println("Action successful msg");
             } else {
-                try {
-                    clickBtn.click();
-                } catch (StaleElementReferenceException e) {
-                    clickBtn.click();
-                }
+                Assert.assertTrue(notificationMessage.msg.getText().contains("Action unsuccesful"));
+                System.out.println("Action unsuccesful msg");
             }
         }
-        System.out.println("Action successful");
-        Assert.assertTrue(driver.findElement(By.xpath("//div[@id='flash']")).getText().contains("Action successful"));
+//        while (true) {
+//            if (driver.findElement(By.xpath("//div[@id='flash-messages']")).getText().contains("Action successful")) {
+//                break;
+//            } else {
+//                try {
+//                    notificationMessage.clickBtn.click();
+//                } catch (StaleElementReferenceException e) {
+//                    System.out.println();
+//                    notificationMessage.clickBtn.click();
+//                }
+//            }
+//        }
+//        System.out.println("Action successful");
+//        Assert.assertTrue(driver.findElement(By.xpath("//div[@id='flash']")).getText().contains("Action successful"));
 
     }
 
