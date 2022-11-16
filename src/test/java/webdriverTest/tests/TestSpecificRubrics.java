@@ -273,34 +273,23 @@ public class TestSpecificRubrics {
     public void notificationMessage(){
         driver.get("http://localhost:7080/notification_message_rendered");
         NotificationMessage notificationMessage = new NotificationMessage(driver);
-        notificationMessage.clickBtn.click();
 
-        if(notificationMessage.msg.getText().contains("Action successful")){
-            Assert.assertTrue(notificationMessage.msg.getText().contains("Action successful"));
-        } else {
-            notificationMessage.clickBtn.click();
-            if(notificationMessage.msg.getText().contains("Action successful")){
-                Assert.assertTrue(notificationMessage.msg.getText().contains("Action successful"));
-                System.out.println("Action successful msg");
+        while (true) {
+            if (driver.findElement(By.xpath("//div[@id='flash-messages']")).getText().contains("Action successful")) {
+                break;
             } else {
-                Assert.assertTrue(notificationMessage.msg.getText().contains("Action unsuccesful"));
-                System.out.println("Action unsuccesful msg");
+                try {
+                    notificationMessage.clickBtn.click();
+                } catch (StaleElementReferenceException e) {
+                    System.out.println();
+                    notificationMessage.clickBtn.click();
+                } finally {
+                    notificationMessage.clickBtn.click();
+                }
             }
         }
-//        while (true) {
-//            if (driver.findElement(By.xpath("//div[@id='flash-messages']")).getText().contains("Action successful")) {
-//                break;
-//            } else {
-//                try {
-//                    notificationMessage.clickBtn.click();
-//                } catch (StaleElementReferenceException e) {
-//                    System.out.println();
-//                    notificationMessage.clickBtn.click();
-//                }
-//            }
-//        }
-//        System.out.println("Action successful");
-//        Assert.assertTrue(driver.findElement(By.xpath("//div[@id='flash']")).getText().contains("Action successful"));
+        System.out.println("Action successful");
+        Assert.assertTrue(driver.findElement(By.xpath("//div[@id='flash']")).getText().contains("Action successful"));
 
     }
 
